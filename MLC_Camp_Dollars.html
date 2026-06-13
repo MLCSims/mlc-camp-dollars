@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milestones Camp Dollars</title>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 4px;
+            font-weight: 400;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #5f6368;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        /* ── Connection status banner ── */
+        #connectionStatus {
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+        }
+        #connectionStatus.connecting { background: #fff8e1; color: #f57c00; border: 1px solid #ffe082; display: block; }
+        #connectionStatus.connected  { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; display: block; }
+        #connectionStatus.error      { background: #fce4ec; color: #c62828; border: 1px solid #f48fb1; display: block; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #dadce0;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .tab-button.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+            font-weight: 500;
+        }
+        .tab-button:hover { background: #f8f9fa; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar input, .toolbar select {
+            padding: 8px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .toolbar button, button.action-btn {
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+        }
+        .btn-primary   { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-danger    { background: #ea4335; color: white; }
+        .btn-danger:hover  { background: #d33b2c; }
+        .btn-warning   { background: #ff9800; color: white; }
+        .btn-warning:hover { background: #f57c00; }
+        .btn-success   { background: #34a853; color: white; }
+        .btn-success:hover { background: #2d8f47; }
+        .btn-gray      { background: #e8eaed; color: #3c4043; }
+        .btn-gray:hover { background: #dadce0; }
+
+        /* ── Balance cards (Tab 2) ── */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            border: 1px solid #dadce0;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .summary-card h4 { margin: 0 0 8px 0; color: #3c4043; font-size: 13px; font-weight: 500; }
+        .summary-card .balance { font-size: 18px; font-weight: 600; }
+        .positive { color: #137333; }
+        .negative { color: #d93025; }
+        .zero     { color: #5f6368; }
+
+        /* ── Register table ── */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+        }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th {
+            background: #f8f9fa;
+            color: #3c4043;
+            font-weight: 500;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dadce0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        tr:hover { background-color: #f8f9fa; }
+        .delete-btn {
+            background: #ea4335; color: white; border: none;
+            padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .delete-btn:hover { background: #d33b2c; }
+        .auto-tag {
+            background: #34a853; color: white;
+            padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500;
+        }
+        .opening-tag {
+            background: #1a73e8; color: white;
+            padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500;
+        }
+
+        /* ── Status bar ── */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #5f6368;
+        }
+        .filter-active {
+            background: #e8f0fe; color: #1a73e8;
+            padding: 3px 8px; border-radius: 10px; font-size: 12px;
+        }
+
+        /* ── Manage Students tab ── */
+        .manage-section {
+            background: white;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .manage-section h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #3c4043;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        .add-student-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .add-student-form input {
+            padding: 8px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .add-student-form input[name="studentName"] { min-width: 220px; }
+
+        .student-roster {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .student-roster th {
+            background: #f8f9fa;
+            color: #5f6368;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dadce0;
+            position: static;
+        }
+        .student-roster td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #5f6368;
+            font-size: 14px;
+        }
+        .empty-state .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+        /* ── Modal overlay ── */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        }
+        .modal h3 { margin: 0 0 10px 0; font-size: 17px; color: #3c4043; }
+        .modal p  { margin: 0 0 16px 0; font-size: 14px; color: #5f6368; line-height: 1.5; }
+        .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+        .modal .confirm-input {
+            width: 100%; box-sizing: border-box;
+            padding: 8px 12px; border: 1px solid #dadce0; border-radius: 4px;
+            font-size: 14px; font-family: inherit; margin-bottom: 12px;
+        }
+        .warning-box {
+            background: #fff3e0; border: 1px solid #ffcc02;
+            border-radius: 4px; padding: 10px 12px;
+            font-size: 13px; color: #e65100; margin-bottom: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Milestones Camp Dollars</h1>
+    <div class="subtitle">Student Account Register</div>
+
+    <div id="connectionStatus" class="connecting">Connecting to database…</div>
+
+    <!-- ══ TABS ══ -->
+    <div class="tabs">
+        <button class="tab-button active" onclick="showTab('register', this)">Transaction Register</button>
+        <button class="tab-button" onclick="showTab('balances', this)">Student Balances</button>
+        <button class="tab-button" onclick="showTab('manage', this)">Manage Students</button>
+    </div>
+
+    <!-- ══ TAB 1: REGISTER ══ -->
+    <div id="register-tab" class="tab-content active">
+        <div class="toolbar">
+            <button class="btn-success" onclick="addWeeklyAllowances()">Add Weekly $5 to All Students</button>
+            <input type="date" id="date">
+            <select id="student">
+                <option value="">Select student</option>
+            </select>
+            <select id="type">
+                <option value="">Transaction type</option>
+                <option value="Reading">Reading (+$1.00)</option>
+                <option value="Writing">Writing (+$1.00)</option>
+                <option value="Behaviors">Behaviors (negative)</option>
+                <option value="Store Purchase">Store Purchase (negative)</option>
+                <option value="Manual">Manual entry</option>
+            </select>
+            <input type="number" id="amount" placeholder="Amount ($)" step="0.25" min="0.25">
+            <input type="text" id="description" placeholder="Description (optional)">
+            <button class="btn-primary" onclick="addTransaction()">Add entry</button>
+                <option value="">Filter by Student - All Students</option>
+            </select>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Balance</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionBody"></tbody>
+            </table>
+        </div>
+        <div class="status-bar">
+            <div><span id="transactionCount">0</span> transactions <span id="filterStatus"></span></div>
+            <div>Last updated: <span id="lastUpdated">—</span></div>
+        </div>
+    </div>
+
+    <!-- ══ TAB 2: BALANCES ══ -->
+    <div id="balances-tab" class="tab-content">
+        <div id="summary" class="summary"></div>
+    </div>
+
+    <!-- ══ TAB 3: MANAGE STUDENTS ══ -->
+    <div id="manage-tab" class="tab-content">
+
+        <!-- Add a student -->
+        <div class="manage-section">
+            <h3>Add a student</h3>
+            <div class="add-student-form">
+                <input type="text" name="studentName" id="newStudentName" placeholder="Full name">
+                <input type="number" id="newStudentBalance" placeholder="Opening balance ($)" step="0.25" min="0">
+                <button class="btn-primary" onclick="addStudent()">Add student</button>
+            </div>
+        </div>
+
+        <!-- Current roster -->
+        <div class="manage-section">
+            <h3>Current roster (<span id="studentCount">0</span> students)</h3>
+            <div id="rosterContainer">
+                <div class="empty-state">
+                    <div class="empty-icon">👤</div>
+                    No students yet. Add students above to get started.
+                </div>
+            </div>
+        </div>
+
+        <!-- Import / Export -->
+        <div class="manage-section">
+            <h3>Import &amp; export</h3>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                <button class="btn-primary" onclick="exportCSV()">Export CSV</button>
+                <button class="btn-warning" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
+                <span style="font-size:13px; color:#5f6368;">Export saves a copy of all transactions. Import adds transactions from a CSV file.</span>
+            </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="manage-section" style="border-color:#fcd5d2;">
+            <h3 style="color:#c62828;">Danger zone</h3>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                <button class="btn-danger" onclick="openRemoveAllModal()">Remove all students &amp; reset data</button>
+                <span style="font-size:13px; color:#5f6368;">This will permanently delete all students and all transactions.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: Remove single student ══ -->
+<div id="removeStudentModal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Remove student?</h3>
+        <p id="removeStudentMsg"></p>
+        <div class="warning-box" id="removeStudentWarning" style="display:none"></div>
+        <p style="font-size:13px;color:#5f6368;margin-bottom:8px;">Type <strong>REMOVE</strong> to confirm:</p>
+        <input type="text" class="confirm-input" id="removeStudentConfirmInput" placeholder="Type REMOVE">
+        <div class="modal-actions">
+            <button class="btn-gray" onclick="closeModal('removeStudentModal')">Cancel</button>
+            <button class="btn-danger" onclick="confirmRemoveStudent()">Remove student</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: Remove ALL students ══ -->
+<div id="removeAllModal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Reset everything?</h3>
+        <p>This will permanently delete <strong>all students and all transactions</strong>. This is typically done at the start of a new summer. There is no undo.</p>
+        <div class="warning-box">⚠️ All balances, transaction history, and student records will be gone forever.</div>
+        <p style="font-size:13px;color:#5f6368;margin-bottom:8px;">Type <strong>RESET ALL</strong> to confirm:</p>
+        <input type="text" class="confirm-input" id="removeAllConfirmInput" placeholder="Type RESET ALL">
+        <div class="modal-actions">
+            <button class="btn-gray" onclick="closeModal('removeAllModal')">Cancel</button>
+            <button class="btn-danger" onclick="confirmRemoveAll()">Yes, delete everything</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  FIREBASE CONFIG — replace with your own values
+// ═══════════════════════════════════════════════
+const firebaseConfig = {
+    apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+    authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+    databaseURL:       "REPLACE_WITH_YOUR_DATABASE_URL",
+    projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+    storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+    messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
+    appId:             "REPLACE_WITH_YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── State ──
+let allTransactions = [];
+let students        = [];   // [{ name, openingBalance, id }]
+let pendingRemoveStudent = null;
+
+// ══════════════════════════════════════════════
+//  CONNECTION STATUS
+// ══════════════════════════════════════════════
+const connRef = db.ref('.info/connected');
+connRef.on('value', snap => {
+    const status = document.getElementById('connectionStatus');
+    if (snap.val()) {
+        status.className = 'connected';
+        status.textContent = '✓ Connected to database';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+    } else {
+        status.className = 'error';
+        status.textContent = '✗ Not connected — check your internet connection';
+        status.style.display = 'block';
+    }
+});
+
+// ══════════════════════════════════════════════
+//  FIREBASE LISTENERS
+// ══════════════════════════════════════════════
+db.ref('students').on('value', snap => {
+    students = [];
+    snap.forEach(child => {
+        students.push({ id: child.key, ...child.val() });
+    });
+    students.sort((a, b) => a.name.localeCompare(b.name));
+    refreshStudentDropdowns();
+    renderRoster();
+    updateSummary();
+    document.getElementById('studentCount').textContent = students.length;
+});
+
+db.ref('transactions').on('value', snap => {
+    allTransactions = [];
+    snap.forEach(child => {
+        allTransactions.push({ id: child.key, ...child.val() });
+    });
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    applyFilter();
+    updateSummary();
+    updateLastUpdated();
+});
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function showTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(name + '-tab').classList.add('active');
+    btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+//  STUDENTS
+// ══════════════════════════════════════════════
+function addStudent() {
+    const name    = document.getElementById('newStudentName').value.trim();
+    const balance = parseFloat(document.getElementById('newStudentBalance').value) || 0;
+
+    if (!name) { alert('Please enter a student name.'); return; }
+    if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        alert('A student with that name already exists.');
+        return;
+    }
+
+    const studentRef = db.ref('students').push();
+    studentRef.set({ name, openingBalance: balance });
+
+    // If opening balance > 0, create a visible transaction
+    if (balance > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        db.ref('transactions').push({
+            date: today,
+            student: name,
+            type: 'Opening Balance',
+            amount: balance,
+            description: 'Opening balance',
+            isOpening: true,
+            id: Date.now() + Math.random()
+        });
+    }
+
+    document.getElementById('newStudentName').value    = '';
+    document.getElementById('newStudentBalance').value = '0';
+}
+
+function refreshStudentDropdowns() {
+    ['student', 'filterStudent'].forEach(id => {
+        const sel    = document.getElementById(id);
+        const oldVal = sel.value;
+        const isFilter = id === 'filterStudent';
+        sel.innerHTML = isFilter
+            ? '<option value="">Filter by Student - All Students</option>'
+            : '<option value="">Select student</option>';
+        students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name;
+            opt.textContent = s.name;
+            sel.appendChild(opt);
+        });
+        if (oldVal) sel.value = oldVal;
+    });
+}
+
+function renderRoster() {
+    const container = document.getElementById('rosterContainer');
+    if (students.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div>No students yet. Add students above to get started.</div>`;
+        return;
+    }
+
+    // Calculate current balances
+    const balances = {};
+    const sorted = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach(t => {
+        if (!balances[t.student]) balances[t.student] = 0;
+        balances[t.student] += t.amount;
+    });
+
+    let html = `<table class="student-roster">
+        <thead><tr>
+            <th>Name</th>
+            <th>Opening balance</th>
+            <th>Current balance</th>
+            <th>Transactions</th>
+            <th>Action</th>
+        </tr></thead><tbody>`;
+
+    students.forEach(s => {
+        const bal   = balances[s.name] || 0;
+        const txCnt = allTransactions.filter(t => t.student === s.name).length;
+        const balClass = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
+        html += `<tr>
+            <td><strong>${s.name}</strong></td>
+            <td>$${(s.openingBalance || 0).toFixed(2)}</td>
+            <td class="${balClass}">$${bal.toFixed(2)}</td>
+            <td>${txCnt}</td>
+            <td><button class="delete-btn" onclick="openRemoveStudentModal('${s.id}', '${s.name.replace(/'/g,"\\'")}', ${txCnt})">Remove</button></td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+//  REMOVE MODALS
+// ══════════════════════════════════════════════
+function openRemoveStudentModal(id, name, txCount) {
+    pendingRemoveStudent = { id, name };
+    const msg = document.getElementById('removeStudentMsg');
+    const warn = document.getElementById('removeStudentWarning');
+    msg.textContent = `You are about to remove ${name} from the roster.`;
+    if (txCount > 0) {
+        warn.style.display = 'block';
+        warn.textContent = `⚠️ This student has ${txCount} transaction${txCount !== 1 ? 's' : ''} on record. Removing the student will NOT delete their transactions — they will remain in the register but the student will no longer appear in dropdowns.`;
+    } else {
+        warn.style.display = 'none';
+    }
+    document.getElementById('removeStudentConfirmInput').value = '';
+    document.getElementById('removeStudentModal').classList.add('open');
+}
+
+function confirmRemoveStudent() {
+    const input = document.getElementById('removeStudentConfirmInput').value.trim();
+    if (input !== 'REMOVE') { alert('Please type REMOVE exactly to confirm.'); return; }
+    if (!pendingRemoveStudent) return;
+    db.ref('students/' + pendingRemoveStudent.id).remove();
+    closeModal('removeStudentModal');
+    pendingRemoveStudent = null;
+}
+
+function openRemoveAllModal() {
+    document.getElementById('removeAllConfirmInput').value = '';
+    document.getElementById('removeAllModal').classList.add('open');
+}
+
+function confirmRemoveAll() {
+    const input = document.getElementById('removeAllConfirmInput').value.trim();
+    if (input !== 'RESET ALL') { alert('Please type RESET ALL exactly to confirm.'); return; }
+    db.ref('students').remove();
+    db.ref('transactions').remove();
+    closeModal('removeAllModal');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+//  TRANSACTIONS
+// ══════════════════════════════════════════════
+function addTransaction() {
+    const date        = document.getElementById('date').value;
+    const student     = document.getElementById('student').value;
+    const type        = document.getElementById('type').value;
+    const description = document.getElementById('description').value.trim();
+    let   amount      = parseFloat(document.getElementById('amount').value);
+
+    if (!date || !student || !type) {
+        alert('Please fill in Date, Student, and Transaction Type.');
+        return;
+    }
+
+    if (type === 'Reading' || type === 'Writing') {
+        amount = 1.00;
+    } else if (type === 'Behaviors' || type === 'Store Purchase') {
+        if (isNaN(amount) || amount === 0) { alert('Please enter an amount.'); return; }
+        amount = -Math.abs(amount);
+    } else if (isNaN(amount)) {
+        alert('Please enter a valid amount.');
+        return;
+    }
+
+    db.ref('transactions').push({
+        date,
+        student,
+        type,
+        amount,
+        description: description || getDefaultDescription(type)
+    });
+
+    clearForm();
+}
+
+function getDefaultDescription(type) {
+    const map = {
+        'Reading':      'Reading reward',
+        'Writing':      'Writing reward',
+        'Behaviors':    'Behavior deduction',
+        'Store Purchase':'Store purchase'
+    };
+    return map[type] || '';
+}
+
+function clearForm() {
+    document.getElementById('amount').value = '';
+    document.getElementById('description').value = '';
+}
+
+function deleteTransaction(id) {
+    db.ref('transactions/' + id).remove();
+}
+
+function addWeeklyAllowances() {
+    if (students.length === 0) {
+        alert('No students on the roster yet. Add students first.');
+        return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    if (!confirm(`Add $5.00 weekly allowance to all ${students.length} students for ${today}?`)) return;
+    const updates = {};
+    students.forEach(s => {
+        const key = db.ref('transactions').push().key;
+        updates[key] = {
+            date: today,
+            student: s.name,
+            type: 'Weekly Allowance',
+            amount: 5.00,
+            description: 'Weekly allowance',
+            isAutomatic: true
+        };
+    });
+    db.ref('transactions').update(updates);
+}
+
+// ══════════════════════════════════════════════
+//  TABLE RENDERING (balance fixed per-student)
+// ══════════════════════════════════════════════
+function applyFilter() {
+    const filter = document.getElementById('filterStudent').value;
+    let visible  = filter
+        ? allTransactions.filter(t => t.student === filter)
+        : [...allTransactions];
+
+    // Compute per-student running balances from ALL transactions (chronological)
+    const runningBalances = {};
+    const chronological = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+    chronological.forEach(t => {
+        if (!runningBalances[t.student]) runningBalances[t.student] = {};
+        runningBalances[t.id] = (runningBalances[t.student]._running || 0) + t.amount;
+        runningBalances[t.student]._running = runningBalances[t.id];
+    });
+
+    document.getElementById('filterStatus').innerHTML = filter
+        ? `<span class="filter-active">Filtered: ${filter}</span>` : '';
+
+    renderTable(visible, runningBalances);
+    document.getElementById('transactionCount').textContent = visible.length;
+}
+
+function renderTable(rows, runningBalances) {
+    const tbody = document.getElementById('transactionBody');
+    tbody.innerHTML = '';
+    // rows already sorted newest-first
+    rows.forEach(t => {
+        const bal        = runningBalances[t.id] || 0;
+        const amtClass   = t.amount > 0 ? 'positive' : t.amount < 0 ? 'negative' : 'zero';
+        const balClass   = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
+        const typeLabel  = t.isAutomatic
+            ? `${t.type} <span class="auto-tag">AUTO</span>`
+            : t.isOpening
+                ? `${t.type} <span class="opening-tag">OPENING</span>`
+                : t.type;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${t.date}</td>
+            <td>${t.student}</td>
+            <td>${typeLabel}</td>
+            <td class="${amtClass}">$${t.amount.toFixed(2)}</td>
+            <td>${t.description || ''}</td>
+            <td class="${balClass}">$${bal.toFixed(2)}</td>
+            <td><button class="delete-btn" onclick="deleteTransaction('${t.id}')">Delete</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  BALANCE CARDS (Tab 2)
+// ══════════════════════════════════════════════
+function updateSummary() {
+    const balances = {};
+    students.forEach(s => { balances[s.name] = 0; });
+    const sorted = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach(t => {
+        if (!(t.student in balances)) balances[t.student] = 0;
+        balances[t.student] += t.amount;
+    });
+
+    const summary = document.getElementById('summary');
+    if (students.length === 0) {
+        summary.innerHTML = '<div style="color:#5f6368;font-size:14px;padding:20px;">No students yet. Add students in the Manage Students tab.</div>';
+        return;
+    }
+
+    summary.innerHTML = Object.keys(balances).sort().map(name => {
+        const bal = balances[name];
+        const cls = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
+        return `<div class="summary-card">
+            <h4>${name}</h4>
+            <div class="balance ${cls}">$${bal.toFixed(2)}</div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  IMPORT / EXPORT
+// ══════════════════════════════════════════════
+function exportCSV() {
+    const sorted = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const balances = {};
+    let csv = 'Date,Student,Type,Amount,Description,Balance\n';
+    sorted.forEach(t => {
+        if (!balances[t.student]) balances[t.student] = 0;
+        balances[t.student] += t.amount;
+        csv += `${t.date},${t.student},${t.type},${t.amount},"${t.description || ''}",${balances[t.student].toFixed(2)}\n`;
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'camp_dollars.csv';
+    a.click();
+}
+
+function handleCsvImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const lines = e.target.result.trim().split('\n');
+        const imported = [];
+        const skipped  = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const cols = parseCSVLine(lines[i].trim());
+            if (cols.length < 4) continue;
+            const [date, student, type, amount, description] = cols;
+            if (!date || !student || !type || !amount) continue;
+            const parsed = parseFloat(amount);
+            if (isNaN(parsed)) continue;
+            if (!students.some(s => s.name === student)) { skipped.add(student); continue; }
+            imported.push({ date, student, type, amount: parsed, description: description || '' });
+        }
+        if (imported.length === 0) { alert('No valid transactions found in the CSV file.'); return; }
+        const msg = skipped.size > 0
+            ? `Found ${imported.length} transactions to import.\n\nSkipped (not on roster): ${[...skipped].join(', ')}\n\nContinue?`
+            : `Found ${imported.length} transactions to import. Continue?`;
+        if (!confirm(msg)) return;
+        const updates = {};
+        imported.forEach(t => {
+            const key = db.ref('transactions').push().key;
+            updates[key] = t;
+        });
+        db.ref('transactions').update(updates);
+        alert(`Imported ${imported.length} transactions.`);
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function parseCSVLine(line) {
+    const result = []; let current = ''; let inQuotes = false;
+    for (const char of line) {
+        if (char === '"') { inQuotes = !inQuotes; }
+        else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+        else { current += char; }
+    }
+    result.push(current.trim());
+    return result;
+}
+
+// ══════════════════════════════════════════════
+//  MISC HELPERS
+// ══════════════════════════════════════════════
+function updateLastUpdated() {
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+}
+
+function setTodayDate() {
+    document.getElementById('date').value = new Date().toISOString().split('T')[0];
+}
+
+// Auto-fill amount and description when type changes
+document.getElementById('type').addEventListener('change', function () {
+    const amt  = document.getElementById('amount');
+    const desc = document.getElementById('description');
+    const type = this.value;
+    if (type === 'Reading')  { amt.value = '1.00'; amt.style.background = '#e8f5e8'; desc.value = 'Reading reward'; }
+    else if (type === 'Writing')  { amt.value = '1.00'; amt.style.background = '#e8f5e8'; desc.value = 'Writing reward'; }
+    else if (type === 'Behaviors')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = ''; }
+    else if (type === 'Store Purchase')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = 'Store purchase'; }
+    else { amt.value = ''; amt.placeholder = 'Amount ($)'; amt.style.background = ''; desc.value = ''; }
+});
+
+// Close modals when clicking backdrop
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', e => {
+        if (e.target === backdrop) closeModal(backdrop.id);
+    });
+});
+
+// Init
+setTodayDate();
+</script>
+</body>
+</html>
