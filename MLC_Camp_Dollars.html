@@ -301,13 +301,13 @@
             </select>
             <select id="type">
                 <option value="">Transaction type</option>
-                <option value="Reading">Reading (+$1.00)</option>
-                <option value="Writing">Writing (+$1.00)</option>
+                <option value="Reading">Reading (+$1)</option>
+                <option value="Writing">Writing (+$1)</option>
                 <option value="Behaviors">Behaviors (negative)</option>
                 <option value="Store Purchase">Store Purchase (negative)</option>
                 <option value="Manual">Manual entry</option>
             </select>
-            <input type="number" id="amount" placeholder="Amount ($)" step="0.25" min="0.25">
+            <input type="number" id="amount" placeholder="Amount ($)" step="1" min="1">
             <input type="text" id="description" placeholder="Description (optional)">
             <button class="btn-primary" onclick="addTransaction()">Add entry</button>
             <select id="filterStudent" onchange="applyFilter()">
@@ -351,7 +351,7 @@
             <h3>Add a student</h3>
             <div class="add-student-form">
                 <input type="text" name="studentName" id="newStudentName" placeholder="Full name">
-                <input type="number" id="newStudentBalance" placeholder="Opening balance ($)" step="0.25" min="0">
+                <input type="number" id="newStudentBalance" placeholder="Opening balance ($)" step="1" min="0">
                 <button class="btn-primary" onclick="addStudent()">Add student</button>
             </div>
         </div>
@@ -473,7 +473,7 @@ function showTab(name, btn) {
 // ══════════════════════════════════════════════
 function addStudent() {
     const name    = document.getElementById('newStudentName').value.trim();
-    const balance = parseFloat(document.getElementById('newStudentBalance').value) || 0;
+    const balance = Math.round(parseFloat(document.getElementById('newStudentBalance').value)) || 0;
 
     if (!name) { alert('Please enter a student name.'); return; }
     if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) {
@@ -547,7 +547,7 @@ function renderRoster() {
         const balClass = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
         html += `<tr>
             <td><strong>${s.name}</strong></td>
-            <td class="${balClass}">$${bal.toFixed(2)}</td>
+            <td class="${balClass}">$${Math.round(bal)}</td>
             <td><button class="delete-btn" onclick="openRemoveStudentModal('${s.id}', '${s.name.replace(/'/g,"\\'")}', ${txCnt})">Remove</button></td>
         </tr>`;
     });
@@ -616,13 +616,15 @@ function addTransaction() {
     }
 
     if (type === 'Reading' || type === 'Writing') {
-        amount = 1.00;
+        amount = 1;
     } else if (type === 'Behaviors' || type === 'Store Purchase') {
         if (isNaN(amount) || amount === 0) { alert('Please enter an amount.'); return; }
-        amount = -Math.abs(amount);
+        amount = -Math.abs(Math.round(amount));
     } else if (isNaN(amount)) {
         alert('Please enter a valid amount.');
         return;
+    } else {
+        amount = Math.round(amount);
     }
 
     db.ref('transactions').push({
@@ -661,7 +663,7 @@ function addWeeklyAllowances() {
         return;
     }
     const today = new Date().toISOString().split('T')[0];
-    if (!confirm(`Add $5.00 weekly allowance to all ${students.length} students for ${today}?`)) return;
+    if (!confirm(`Add $5 weekly allowance to all ${students.length} students for ${today}?`)) return;
     const updates = {};
     students.forEach(s => {
         const key = db.ref('transactions').push().key;
@@ -720,9 +722,9 @@ function renderTable(rows, runningBalances) {
             <td>${t.date}</td>
             <td>${t.student}</td>
             <td>${typeLabel}</td>
-            <td class="${amtClass}">$${t.amount.toFixed(2)}</td>
+            <td class="${amtClass}">$${Math.round(t.amount)}</td>
             <td>${t.description || ''}</td>
-            <td class="${balClass}">$${bal.toFixed(2)}</td>
+            <td class="${balClass}">$${Math.round(bal)}</td>
             <td><button class="delete-btn" onclick="deleteTransaction('${t.id}')">Delete</button></td>
         `;
         tbody.appendChild(tr);
@@ -752,7 +754,7 @@ function updateSummary() {
         const cls = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
         return `<div class="summary-card">
             <h4>${name}</h4>
-            <div class="balance ${cls}">$${bal.toFixed(2)}</div>
+            <div class="balance ${cls}">$${Math.round(bal)}</div>
         </div>`;
     }).join('');
 }
@@ -767,7 +769,7 @@ function exportCSV() {
     sorted.forEach(t => {
         if (!balances[t.student]) balances[t.student] = 0;
         balances[t.student] += t.amount;
-        csv += `${t.date},${t.student},${t.type},${t.amount},"${t.description || ''}",${balances[t.student].toFixed(2)}\n`;
+        csv += `${t.date},${t.student},${t.type},${t.amount},"${t.description || ''}",${Math.round(balances[t.student])}\n`;
     });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -837,8 +839,8 @@ document.getElementById('type').addEventListener('change', function () {
     const amt  = document.getElementById('amount');
     const desc = document.getElementById('description');
     const type = this.value;
-    if (type === 'Reading')  { amt.value = '1.00'; amt.style.background = '#e8f5e8'; desc.value = 'Reading reward'; }
-    else if (type === 'Writing')  { amt.value = '1.00'; amt.style.background = '#e8f5e8'; desc.value = 'Writing reward'; }
+    if (type === 'Reading')  { amt.value = '1'; amt.style.background = '#e8f5e8'; desc.value = 'Reading reward'; }
+    else if (type === 'Writing')  { amt.value = '1'; amt.style.background = '#e8f5e8'; desc.value = 'Writing reward'; }
     else if (type === 'Behaviors')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = ''; }
     else if (type === 'Store Purchase')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = 'Store purchase'; }
     else { amt.value = ''; amt.placeholder = 'Amount ($)'; amt.style.background = ''; desc.value = ''; }
