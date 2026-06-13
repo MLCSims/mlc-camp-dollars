@@ -874,7 +874,7 @@ db.ref('transactions').on('value', snap => {
     snap.forEach(child => {
         allTransactions.push({ id: child.key, ...child.val() });
     });
-    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)));
     applyFilter();
     updateSummary();
     renderRoster();
