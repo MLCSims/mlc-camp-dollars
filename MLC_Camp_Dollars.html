@@ -739,8 +739,7 @@ function updateSummary() {
     students.forEach(s => { balances[s.name] = 0; });
     const sorted = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
     sorted.forEach(t => {
-        if (!(t.student in balances)) balances[t.student] = 0;
-        balances[t.student] += t.amount;
+        if (t.student in balances) balances[t.student] += t.amount;
     });
 
     const summary = document.getElementById('summary');
