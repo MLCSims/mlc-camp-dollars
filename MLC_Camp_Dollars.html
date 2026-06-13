@@ -537,9 +537,7 @@ function renderRoster() {
     let html = `<table class="student-roster">
         <thead><tr>
             <th>Name</th>
-            <th>Opening balance</th>
             <th>Current balance</th>
-            <th>Transactions</th>
             <th>Action</th>
         </tr></thead><tbody>`;
 
@@ -549,9 +547,7 @@ function renderRoster() {
         const balClass = bal > 0 ? 'positive' : bal < 0 ? 'negative' : 'zero';
         html += `<tr>
             <td><strong>${s.name}</strong></td>
-            <td>$${(s.openingBalance || 0).toFixed(2)}</td>
             <td class="${balClass}">$${bal.toFixed(2)}</td>
-            <td>${txCnt}</td>
             <td><button class="delete-btn" onclick="openRemoveStudentModal('${s.id}', '${s.name.replace(/'/g,"\\'")}', ${txCnt})">Remove</button></td>
         </tr>`;
     });
@@ -881,6 +877,7 @@ db.ref('transactions').on('value', snap => {
     allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     applyFilter();
     updateSummary();
+    renderRoster();
     updateLastUpdated();
 });
 </script>
