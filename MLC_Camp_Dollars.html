@@ -310,6 +310,7 @@
             <input type="number" id="amount" placeholder="Amount ($)" step="0.25" min="0.25">
             <input type="text" id="description" placeholder="Description (optional)">
             <button class="btn-primary" onclick="addTransaction()">Add entry</button>
+            <select id="filterStudent" onchange="applyFilter()">
                 <option value="">Filter by Student - All Students</option>
             </select>
             <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
