@@ -422,13 +422,13 @@
 //  FIREBASE CONFIG — replace with your own values
 // ═══════════════════════════════════════════════
 const firebaseConfig = {
-    apiKey:            "AIzaSyD_0yodaeorw0qXkv_0Sh5HL8pI3TSdCxI",
-    authDomain:        "mlc-camp-dollars.firebaseapp.com",
-    databaseURL:       "https://mlc-camp-dollars-default-rtdb.firebaseio.com",
-    projectId:         "mlc-camp-dollars",
-    storageBucket:     "mlc-camp-dollars.firebasestorage.app",
-    messagingSenderId: "751262130453",
-    appId:             "1:751262130453:web:e5685b16c12cff3840491c"
+    apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+    authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+    databaseURL:       "REPLACE_WITH_YOUR_DATABASE_URL",
+    projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+    storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+    messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
+    appId:             "REPLACE_WITH_YOUR_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -454,32 +454,6 @@ connRef.on('value', snap => {
         status.textContent = '✗ Not connected — check your internet connection';
         status.style.display = 'block';
     }
-});
-
-// ══════════════════════════════════════════════
-//  FIREBASE LISTENERS
-// ══════════════════════════════════════════════
-db.ref('students').on('value', snap => {
-    students = [];
-    snap.forEach(child => {
-        students.push({ id: child.key, ...child.val() });
-    });
-    students.sort((a, b) => a.name.localeCompare(b.name));
-    refreshStudentDropdowns();
-    renderRoster();
-    updateSummary();
-    document.getElementById('studentCount').textContent = students.length;
-});
-
-db.ref('transactions').on('value', snap => {
-    allTransactions = [];
-    snap.forEach(child => {
-        allTransactions.push({ id: child.key, ...child.val() });
-    });
-    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-    applyFilter();
-    updateSummary();
-    updateLastUpdated();
 });
 
 // ══════════════════════════════════════════════
@@ -517,8 +491,7 @@ function addStudent() {
             type: 'Opening Balance',
             amount: balance,
             description: 'Opening balance',
-            isOpening: true,
-            id: Date.now() + Math.random()
+            isOpening: true
         });
     }
 
@@ -717,7 +690,7 @@ function applyFilter() {
 
     // Compute per-student running balances from ALL transactions (chronological)
     const runningBalances = {};
-    const chronological = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+    const chronological = [...allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date) || String(a.id).localeCompare(String(b.id)));
     chronological.forEach(t => {
         if (!runningBalances[t.student]) runningBalances[t.student] = {};
         runningBalances[t.id] = (runningBalances[t.student]._running || 0) + t.amount;
@@ -882,6 +855,32 @@ document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
 
 // Init
 setTodayDate();
+
+// ══════════════════════════════════════════════
+//  FIREBASE LISTENERS (registered after DOM is ready)
+// ══════════════════════════════════════════════
+db.ref('students').on('value', snap => {
+    students = [];
+    snap.forEach(child => {
+        students.push({ id: child.key, ...child.val() });
+    });
+    students.sort((a, b) => a.name.localeCompare(b.name));
+    refreshStudentDropdowns();
+    renderRoster();
+    updateSummary();
+    document.getElementById('studentCount').textContent = students.length;
+});
+
+db.ref('transactions').on('value', snap => {
+    allTransactions = [];
+    snap.forEach(child => {
+        allTransactions.push({ id: child.key, ...child.val() });
+    });
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    applyFilter();
+    updateSummary();
+    updateLastUpdated();
+});
 </script>
 </body>
 </html>
