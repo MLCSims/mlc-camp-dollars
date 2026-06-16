@@ -301,8 +301,10 @@
             </select>
             <select id="type">
                 <option value="">Transaction type</option>
+                <option value="Attendance">Attendance (+$1)</option>
                 <option value="Reading">Reading (+$1)</option>
                 <option value="Writing">Writing (+$1)</option>
+                <option value="Reading & Writing">Reading & Writing (+$2)</option>
                 <option value="Behaviors">Behaviors (negative)</option>
                 <option value="Store Purchase">Store Purchase (negative)</option>
                 <option value="Manual">Manual entry</option>
@@ -615,7 +617,9 @@ function addTransaction() {
         return;
     }
 
-    if (type === 'Reading' || type === 'Writing') {
+    if (type === 'Reading & Writing') {
+        amount = 2;
+    } else if (type === 'Reading' || type === 'Writing' || type === 'Attendance') {
         amount = 1;
     } else if (type === 'Behaviors' || type === 'Store Purchase') {
         if (isNaN(amount) || amount === 0) { alert('Please enter an amount.'); return; }
@@ -642,6 +646,7 @@ function getDefaultDescription(type) {
     const map = {
         'Reading':      'Reading reward',
         'Writing':      'Writing reward',
+        'Reading & Writing': 'Reading & Writing reward',
         'Behaviors':    'Behavior deduction',
         'Store Purchase':'Store purchase'
     };
@@ -840,7 +845,8 @@ document.getElementById('type').addEventListener('change', function () {
     const type = this.value;
     if (type === 'Reading')  { amt.value = '1'; amt.style.background = '#e8f5e8'; desc.value = 'Reading reward'; }
     else if (type === 'Writing')  { amt.value = '1'; amt.style.background = '#e8f5e8'; desc.value = 'Writing reward'; }
-    else if (type === 'Behaviors')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = ''; }
+    else if (type === 'Attendance')  { amt.value = '1'; amt.style.background = '#e8f5e8'; desc.value = 'Attendance reward'; }
+    else if (type === 'Reading & Writing')  { amt.value = '2'; amt.style.background = '#e8f5e8'; desc.value = 'Reading & Writing reward'; }
     else if (type === 'Store Purchase')  { amt.value = ''; amt.placeholder = 'Enter amount (will be negative)'; amt.style.background = '#ffe8e8'; desc.value = 'Store purchase'; }
     else { amt.value = ''; amt.placeholder = 'Amount ($)'; amt.style.background = ''; desc.value = ''; }
 });
